@@ -1,0 +1,23 @@
+<%- include partials/header.ejs %>
+    <h1>Home</h1>
+
+    <p>
+        <%= homeText %>
+    </p>
+
+    <%  infoArray.forEach( (element) => { %>
+        <h1>
+            <%= element.title %>
+        </h1>
+        <p>
+            <%= element.post.substring(0,100) + "..." %>
+                <a href="/posts/<%= element.title %>">Read more</a>
+        </p>
+
+        <% }) %>
+
+
+
+
+
+            <%- include partials/footer.ejs %>
