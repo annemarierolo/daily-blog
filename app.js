@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const _ = require('lodash');
 var path = require('path');
+const mongoose = require("mongoose");
 const port = 3000;
 
 const homeStartingContent = "Lacus vel facilisis volutpat est velit egestas dui id ornare. Semper auctor neque vitae tempus quam. Sit amet cursus sit amet dictum sit amet justo. Viverra tellus in hac habitasse. Imperdiet proin fermentum leo vel orci porta. Donec ultrices tincidunt arcu non sodales neque sodales ut. Mattis molestie a iaculis at erat pellentesque adipiscing. Magnis dis parturient montes nascetur ridiculus mus mauris vitae ultricies. Adipiscing elit ut aliquam purus sit amet luctus venenatis lectus. Ultrices vitae auctor eu augue ut lectus arcu bibendum at. Odio euismod lacinia at quis risus sed vulputate odio ut. Cursus mattis molestie a iaculis at erat pellentesque adipiscing.";
@@ -12,18 +13,35 @@ const aboutContent = "Hac habitasse platea dictumst vestibulum rhoncus est pelle
 const contactContent = "Scelerisque eleifend donec pretium vulputate sapien. Rhoncus urna neque viverra justo nec ultrices. Arcu dui vivamus arcu felis bibendum. Consectetur adipiscing elit duis tristique. Risus viverra adipiscing at in tellus integer feugiat. Sapien nec sagittis aliquam malesuada bibendum arcu vitae. Consequat interdum varius sit amet mattis. Iaculis nunc sed augue lacus. Interdum posuere lorem ipsum dolor sit amet consectetur adipiscing elit. Pulvinar elementum integer enim neque. Ultrices gravida dictum fusce ut placerat orci nulla. Mauris in aliquam sem fringilla ut morbi tincidunt. Tortor posuere ac ut consequat semper viverra nam libero.";
 
 const app = express();
-let infoArray = [];
 
 app.set('view engine', 'ejs');
-
 app.set('views', path.join(__dirname, 'views'));
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
+mongoose.connect("mongodb://localhost:27017/dailyblogDB", { useNewUrlParser: true });
+
+const postSchema = {
+    title: String,
+    content: String
+}
+
+const Post = mongoose.model("Post", postSchema);
+
 app.get('/', (req, res) => {
-    // const content = element.post.substring(0, 100);
-    res.render("home", { homeText: homeStartingContent, infoArray: infoArray });
+
+    Post.find({}, (err, foundPost) => {
+        if (err) {
+            console.log(err);
+
+        } else {
+            console.log("Successfully saved");
+            res.render("home", { homeText: homeStartingContent, infoArray: foundPost });
+
+        }
+    })
+
 })
 
 app.get('/about', (req, res) => {
@@ -39,29 +57,38 @@ app.get('/compose', (req, res) => {
     res.render("compose");
 });
 
-app.get('/posts/:topic', (req, res) => {
+app.get('/posts/:postId', (req, res) => {
 
-    const requestedTitle = _.lowerCase(req.params.topic);
+    const requestedId = req.params.postId;
+    Post.findOne({ _id: requestedId }, (err, foundPost) => {
+        if (!err) {
+            res.render("post", { postTitle: foundPost.title, postContent: foundPost.content })
+        } else {
+            console.log(err);
 
-    infoArray.forEach((element) => {
-        const arrayTitle = _.lowerCase(element.title);
-        if (requestedTitle === arrayTitle) {
-            res.render("post", { postTitle: element.title, postContent: element.post })
         }
-    });
+    })
 });
 
 app.post('/compose', (req, res) => {
 
     const title = req.body.titleValue;
     const post = req.body.postValue;
-    const composeInfo = {
-        title: title,
-        post: post
-    };
 
-    infoArray.push(composeInfo);
-    res.redirect("/");
+    const composeInfo = new Post({
+        title: title,
+        content: post
+    });
+
+    composeInfo.save((err) => {
+        if (!err) {
+            res.redirect("/");
+        } else {
+            console.log(err);
+
+        }
+    });
+
 
 })
 
